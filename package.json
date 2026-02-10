@@ -1,32 +1,19 @@
 {
-  "name": "example-basic",
+  "name": "autoboard",
+  "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vinxi dev",
-    "build": "vinxi build",
-    "start": "vinxi start",
-    "version": "vinxi version",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
-  },
-  "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.31",
-    "@solidjs/meta": "^0.29.4",
-    "@solidjs/router": "^0.15.0",
-    "@solidjs/start": "^1.1.0",
-    "@thisbeyond/solid-dnd": "^0.7.5",
-    "better-sqlite3": "^11.7.0",
-    "drizzle-orm": "^0.36.4",
-    "solid-js": "^1.9.5",
-    "vinxi": "^0.5.7"
-  },
-  "devDependencies": {
-    "@types/better-sqlite3": "^7.6.12",
-    "drizzle-kit": "^0.30.0"
+    "dev": "pnpm -r --parallel --filter @autoboard/api --filter @autoboard/web run dev",
+    "build": "pnpm -r run build",
+    "db:generate": "pnpm --filter @autoboard/db db:generate",
+    "db:migrate": "pnpm --filter @autoboard/db db:migrate",
+    "db:push": "pnpm --filter @autoboard/db db:push",
+    "db:studio": "pnpm --filter @autoboard/db db:studio"
   },
   "engines": {
     "node": ">=22"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["better-sqlite3"]
   }
 }

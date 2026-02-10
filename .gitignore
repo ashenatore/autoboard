@@ -31,3 +31,5 @@ Thumbs.db
 /drizzle/*.sqlite
 /drizzle/*.sqlite-journal
 /drizzle/*.db
+.pnpm-store/
+node_modules/
