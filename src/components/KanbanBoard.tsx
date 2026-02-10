@@ -3,13 +3,23 @@ import {
   DragDropSensors,
   DragOverlay,
 } from "@thisbeyond/solid-dnd";
-import { Component, createSignal, createResource, For, Show } from "solid-js";
+import { Component, createSignal, createResource, createEffect, For, Show, onCleanup } from "solid-js";
 import KanbanColumn from "./KanbanColumn";
 import { CardContent } from "./KanbanCard";
 import type { Card } from "~/api/cards";
-import { getCards, createCard, updateCard, deleteCard } from "~/api/cards";
+import {
+  getCards,
+  createCard,
+  updateCard,
+  deleteCard,
+  archiveCard,
+  getArchivedCards,
+} from "~/api/cards";
 import { generateTitle } from "~/api/generate-title";
+import { runCard } from "~/api/run-card";
+import { getNeedsInput, getRunningCards } from "~/api/card-logs";
 import CreateCardModal from "./CreateCardModal";
+import ArchivedCardsModal from "./ArchivedCardsModal";
 import FloatingActionButton from "./FloatingActionButton";
 
 interface Column {
@@ -20,6 +30,9 @@ interface Column {
 
 interface KanbanBoardProps {
   projectId: string | null;
+  autoModeActive?: boolean;
+  onCardClick?: (cardId: string, title?: string, description?: string) => void;
+  onRefetchReady?: (refetch: () => void) => void;
 }
 
 
@@ -27,10 +40,13 @@ const KanbanBoard: Component<KanbanBoardProps> = (props) => {
   const columns: Column[] = [
     { id: "todo", title: "To Do" },
     { id: "in-progress", title: "In Progress" },
+    { id: "manual-review", title: "Manual Review" },
     { id: "done", title: "Done" },
   ];
 
   const [refreshKey, setRefreshKey] = createSignal(0);
+  const [needsInputMap, setNeedsInputMap] = createSignal<Record<string, boolean>>({});
+  const [runningCardsMap, setRunningCardsMap] = createSignal<Record<string, boolean>>({});
 
   // Access projectId reactively - props.projectId is reactive when accessed
   const currentProjectId = () => props.projectId;
@@ -40,7 +56,7 @@ const KanbanBoard: Component<KanbanBoardProps> = (props) => {
       // Only fetch on client side and when projectId is available
       // Access props.projectId directly to ensure reactivity
       const pid = props.projectId;
-      if (typeof window === "undefined" || !pid) {
+      if (!pid) {
         return null;
       }
       return [refreshKey(), pid] as const;
@@ -50,24 +66,78 @@ const KanbanBoard: Component<KanbanBoardProps> = (props) => {
   );
 
   const [isModalOpen, setIsModalOpen] = createSignal(false);
+  const [isArchivedModalOpen, setIsArchivedModalOpen] = createSignal(false);
   const [generatingTitles, setGeneratingTitles] = createSignal<Set<string>>(
     new Set()
   );
 
+  const [archivedCards, { refetch: refetchArchived }] = createResource(
+    () => {
+      const pid = props.projectId;
+      if (!isArchivedModalOpen() || !pid) {
+        return null;
+      }
+      return pid;
+    },
+    (projectId) => getArchivedCards(projectId),
+    { initialValue: [] }
+  );
+
+  // Poll for needsInput and running cards every 3 seconds
+  const pollInterval = setInterval(async () => {
+    try {
+      const [needsInputResult, runningResult] = await Promise.all([
+        getNeedsInput(),
+        getRunningCards(),
+      ]);
+      setNeedsInputMap(needsInputResult);
+
+      // Detect cards that stopped running (completed) and refetch to update columns
+      const oldRunning = runningCardsMap();
+      const hadRunning = Object.keys(oldRunning).some((id) => oldRunning[id]);
+      const stillRunning = Object.keys(runningResult).some((id) => runningResult[id]);
+      if (hadRunning && !stillRunning) {
+        refetch();
+      } else if (hadRunning) {
+        // Check if any specific card stopped running
+        const stoppedRunning = Object.keys(oldRunning).some(
+          (id) => oldRunning[id] && !runningResult[id]
+        );
+        if (stoppedRunning) {
+          refetch();
+        }
+      }
+
+      setRunningCardsMap(runningResult);
+    } catch {
+      // Ignore polling errors
+    }
+  }, 3000);
+  onCleanup(() => clearInterval(pollInterval));
+
+  // Poll cards when auto mode is active (using refetch to avoid triggering Suspense)
+  createEffect(() => {
+    if (!props.autoModeActive) return;
+    const interval = setInterval(() => refetch(), 2000);
+    onCleanup(() => clearInterval(interval));
+  });
+
   const getCardsForColumn = (columnId: string) => {
     const allCards = cards() || [];
     const generatingSet = generatingTitles();
+    const inputMap = needsInputMap();
+    const runningMap = runningCardsMap();
     return allCards
       .filter((card) => card.columnId === columnId)
       .map((card) => ({
         ...card,
         generatingTitle: generatingSet.has(card.id),
+        needsInput: inputMap[card.id] || false,
+        isRunning: runningMap[card.id] || false,
       }));
   };
 
   const handleDeleteCard = async (cardId: string) => {
-    if (typeof window === "undefined") return;
-
     try {
       await deleteCard(cardId);
       // Refresh the cards list after successful deletion
@@ -78,23 +148,54 @@ const KanbanBoard: Component<KanbanBoardProps> = (props) => {
     }
   };
 
+  const handleArchiveCard = async (cardId: string) => {
+    try {
+      await archiveCard(cardId);
+      refetch();
+    } catch (error) {
+      console.error("Error archiving card:", error);
+      alert("Failed to archive card. Please try again.");
+    }
+  };
+
+  const handleViewArchived = () => {
+    setIsArchivedModalOpen(true);
+  };
+
+  const handleCardClick = (cardId: string) => {
+    const card = cards()?.find((c) => c.id === cardId);
+    const title = card?.title ?? undefined;
+    const description = card?.description ?? undefined;
+    props.onCardClick?.(cardId, title, description);
+  };
+
+  // Expose refetch to parent
+  createEffect(() => {
+    if (props.onRefetchReady) {
+      props.onRefetchReady(() => refetch());
+    }
+  });
+
   const handleDragEnd = async ({ draggable, droppable }: any) => {
-    if (typeof window === "undefined" || !droppable) return;
+    if (!droppable) return;
 
     const cardId = draggable.id as string;
     const newColumnId = droppable.id as string;
-
-    // Optimistically update UI
-    const currentCards = cards() || [];
-    const updatedCards = currentCards.map((card) =>
-      card.id === cardId ? { ...card, columnId: newColumnId } : card
-    );
 
     // Update in database
     try {
       await updateCard(cardId, { columnId: newColumnId });
       // Refresh to ensure consistency
       refetch();
+
+      // If moved to in-progress, start the agent run
+      if (newColumnId === "in-progress") {
+        try {
+          await runCard({ cardId });
+        } catch (error) {
+          console.error("Error starting card run:", error);
+        }
+      }
     } catch (error) {
       console.error("Error updating card:", error);
       // Revert optimistic update on error
@@ -108,10 +209,8 @@ const KanbanBoard: Component<KanbanBoardProps> = (props) => {
     columnId: string
   ) => {
     const pid = currentProjectId();
-    if (typeof window === "undefined" || !pid) {
-      if (typeof window !== "undefined") {
-        alert("Please select a project first.");
-      }
+    if (!pid) {
+      alert("Please select a project first.");
       return;
     }
 
@@ -126,9 +225,9 @@ const KanbanBoard: Component<KanbanBoardProps> = (props) => {
       refetch();
 
       // If card was created without a title, generate one
-      if (!title && description) {
+      if ((!title || title.trim() === "") && description && !newCard.title) {
         setGeneratingTitles((prev) => new Set(prev).add(newCard.id));
-        
+
         try {
           await generateTitle(newCard.id);
           // Refresh cards to get the updated title
@@ -156,7 +255,7 @@ const KanbanBoard: Component<KanbanBoardProps> = (props) => {
         when={props.projectId}
         fallback={
           <div class="kanban-board">
-            <div style="text-align: center; padding: 4rem; color: var(--text-secondary);">
+            <div class="kanban-board__fallback">
               <p>Please select a project to view its Kanban board.</p>
             </div>
           </div>
@@ -179,6 +278,13 @@ const KanbanBoard: Component<KanbanBoardProps> = (props) => {
                           }
                         : undefined
                     }
+                    onArchiveCard={
+                      column.id === "done" ? handleArchiveCard : undefined
+                    }
+                    onViewArchived={
+                      column.id === "done" ? handleViewArchived : undefined
+                    }
+                    onCardClick={handleCardClick}
                   />
                 )}
               </For>
@@ -190,12 +296,16 @@ const KanbanBoard: Component<KanbanBoardProps> = (props) => {
               const currentCard = cards()?.find((c) => c.id === draggable.id);
               if (!currentCard) return null;
               const generatingSet = generatingTitles();
+              const inputMap = needsInputMap();
+              const runningMap = runningCardsMap();
               return (
                 <div class="kanban-card">
                   <CardContent
                     card={{
                       ...currentCard,
                       generatingTitle: generatingSet.has(currentCard.id),
+                      needsInput: inputMap[currentCard.id] || false,
+                      isRunning: runningMap[currentCard.id] || false,
                     }}
                   />
                 </div>
@@ -208,6 +318,11 @@ const KanbanBoard: Component<KanbanBoardProps> = (props) => {
           isOpen={isModalOpen()}
           onClose={() => setIsModalOpen(false)}
           onSubmit={handleCreateCard}
+        />
+        <ArchivedCardsModal
+          isOpen={isArchivedModalOpen()}
+          onClose={() => setIsArchivedModalOpen(false)}
+          archivedCards={archivedCards() || []}
         />
       </Show>
     </>

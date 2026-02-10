@@ -10,10 +10,6 @@ export interface Project {
  * Fetches all projects from the API
  */
 export async function getProjects(): Promise<Project[]> {
-  // Only fetch on client side
-  if (typeof window === "undefined") {
-    return [];
-  }
   try {
     const response = await fetch("/api/projects");
     if (!response.ok) {
@@ -33,10 +29,6 @@ export async function getProjects(): Promise<Project[]> {
  * Creates a new project
  */
 export async function createProject(name: string, filePath: string): Promise<Project> {
-  if (typeof window === "undefined") {
-    throw new Error("Cannot create project on server side");
-  }
-  
   try {
     const response = await fetch("/api/projects", {
       method: "POST",
@@ -62,13 +54,38 @@ export async function createProject(name: string, filePath: string): Promise<Pro
 }
 
 /**
+ * Updates a project
+ */
+export async function updateProject(id: string, name?: string, filePath?: string): Promise<Project> {
+  try {
+    const response = await fetch("/api/projects", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id,
+        name,
+        filePath,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}: ${response.statusText}` }));
+      throw new Error(errorData.error || "Failed to update project");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error updating project:", error);
+    throw error;
+  }
+}
+
+/**
  * Deletes a project by ID
  */
 export async function deleteProject(id: string): Promise<void> {
-  if (typeof window === "undefined") {
-    throw new Error("Cannot delete project on server side");
-  }
-  
   try {
     const response = await fetch("/api/projects", {
       method: "DELETE",

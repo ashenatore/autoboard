@@ -31,7 +31,7 @@ export interface AgentMessage {
 export interface AgentQueryOptions {
   /** The prompt/task for the agent to execute */
   prompt: string;
-  /** Model to use (provider-specific, e.g., "claude-haiku-4-5", "claude-sonnet-4-20250514") */
+  /** Model to use (provider-specific, e.g., "claude-opus-4-6", "claude-haiku-4-5") */
   model: string;
   /** Working directory (project path) for the query */
   cwd: string;
@@ -49,7 +49,18 @@ export interface AgentQueryOptions {
   systemPrompt?: string;
   /** Optional abort controller for cancellation */
   abortController?: AbortController;
+  /** Session ID to resume a previous conversation */
+  resume?: string;
 }
+
+/**
+ * Query object that can be iterated and supports streamInput for user input.
+ * This wraps the SDK Query type to provide a simpler interface.
+ */
+export type AgentQuery = {
+  [Symbol.asyncIterator](): AsyncIterator<AgentMessage>;
+  streamInput(message: string): void | Promise<void>;
+} & AsyncIterable<AgentMessage>;
 
 /**
  * Interface for agent code query provider.
@@ -63,4 +74,13 @@ export interface IAgentCodeQuery {
    * @returns AsyncGenerator that yields agent messages from the stream
    */
   query(options: AgentQueryOptions): AsyncGenerator<AgentMessage>;
+  
+  /**
+   * Create a Query object that can be iterated and supports streamInput().
+   * This is useful when you need to send user input to a running agent.
+   *
+   * @param options - Configuration options for the query
+   * @returns Query object that can be iterated and has streamInput method
+   */
+  createQuery(options: AgentQueryOptions & { enableUserInput?: boolean }): AgentQuery;
 }

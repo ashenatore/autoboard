@@ -7,6 +7,7 @@ export interface UpdateCardInput {
   columnId?: string;
   title?: string;
   description?: string;
+  archivedAt?: Date;
 }
 
 export interface UpdateCardResult {
@@ -28,6 +29,7 @@ export class UpdateCardUseCase {
     if (input.columnId !== undefined) updateData.columnId = input.columnId;
     if (input.title !== undefined) updateData.title = input.title;
     if (input.description !== undefined) updateData.description = input.description;
+    if (input.archivedAt !== undefined) updateData.archivedAt = input.archivedAt;
 
     try {
       const card = await this.cardRepository.updateCard(input.id, updateData);

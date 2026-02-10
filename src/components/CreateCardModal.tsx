@@ -28,7 +28,8 @@ const CreateCardModal: Component<CreateCardModalProps> = (props) => {
     e.preventDefault();
     // Allow submission if description is provided, even without title
     if (description().trim()) {
-      props.onSubmit(title().trim() || "", description().trim(), "todo");
+      const trimmedTitle = title().trim();
+      props.onSubmit(trimmedTitle || "", description().trim(), "todo");
       setTitle("");
       setDescription("");
     }
@@ -79,6 +80,20 @@ const CreateCardModal: Component<CreateCardModalProps> = (props) => {
             </div>
             <form class="modal-form" onSubmit={handleSubmit}>
               <div class="modal-field">
+                <label for="card-title" class="modal-label">
+                  Title
+                </label>
+                <input
+                  id="card-title"
+                  type="text"
+                  class="modal-input"
+                  value={title()}
+                  onInput={(e) => setTitle(e.currentTarget.value)}
+                  placeholder="Enter feature title (optional - will be auto-generated if empty)"
+                  autofocus
+                />
+              </div>
+              <div class="modal-field">
                 <label for="card-description" class="modal-label">
                   Description <span class="required">*</span>
                 </label>
@@ -90,20 +105,6 @@ const CreateCardModal: Component<CreateCardModalProps> = (props) => {
                   placeholder="Enter feature description"
                   rows={4}
                   required
-                  autofocus
-                />
-              </div>
-              <div class="modal-field">
-                <label for="card-title" class="modal-label">
-                  Title
-                </label>
-                <input
-                  id="card-title"
-                  type="text"
-                  class="modal-input"
-                  value={title()}
-                  onInput={(e) => setTitle(e.currentTarget.value)}
-                  placeholder="Enter feature title (optional - will be auto-generated if empty)"
                 />
               </div>
               <div class="modal-actions">

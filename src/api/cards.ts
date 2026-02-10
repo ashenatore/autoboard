@@ -6,7 +6,10 @@ export interface Card {
   projectId: string;
   createdAt?: Date;
   updatedAt?: Date;
+  archivedAt?: Date | null;
   generatingTitle?: boolean;
+  needsInput?: boolean;
+  isRunning?: boolean;
 }
 
 export interface CreateCardParams {
@@ -26,7 +29,7 @@ export interface UpdateCardParams {
  * Fetches cards for a specific project
  */
 export async function getCards(projectId: string): Promise<Card[]> {
-  if (!projectId || typeof window === "undefined") {
+  if (!projectId) {
     return [];
   }
   
@@ -45,13 +48,57 @@ export async function getCards(projectId: string): Promise<Card[]> {
 }
 
 /**
+ * Fetches archived cards for a specific project
+ */
+export async function getArchivedCards(projectId: string): Promise<Card[]> {
+  if (!projectId) {
+    return [];
+  }
+
+  try {
+    const url = `/api/cards?projectId=${encodeURIComponent(projectId)}&archived=true`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error("Failed to fetch archived cards");
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching archived cards:", error);
+    throw error;
+  }
+}
+
+/**
+ * Archives a card by ID
+ */
+export async function archiveCard(id: string): Promise<Card> {
+  try {
+    const response = await fetch("/api/cards", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id,
+        archivedAt: new Date().toISOString(),
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to archive card");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error archiving card:", error);
+    throw error;
+  }
+}
+
+/**
  * Creates a new card
  */
 export async function createCard(params: CreateCardParams): Promise<Card> {
-  if (typeof window === "undefined") {
-    throw new Error("Cannot create card on server side");
-  }
-  
   try {
     const response = await fetch("/api/cards", {
       method: "POST",
@@ -81,10 +128,6 @@ export async function createCard(params: CreateCardParams): Promise<Card> {
  * Updates an existing card
  */
 export async function updateCard(id: string, updates: UpdateCardParams): Promise<Card> {
-  if (typeof window === "undefined") {
-    throw new Error("Cannot update card on server side");
-  }
-  
   try {
     const response = await fetch("/api/cards", {
       method: "PATCH",
@@ -112,10 +155,6 @@ export async function updateCard(id: string, updates: UpdateCardParams): Promise
  * Deletes a card by ID
  */
 export async function deleteCard(id: string): Promise<void> {
-  if (typeof window === "undefined") {
-    throw new Error("Cannot delete card on server side");
-  }
-  
   try {
     const response = await fetch("/api/cards", {
       method: "DELETE",

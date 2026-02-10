@@ -1,7 +1,7 @@
 import { db } from "~/db";
 import { projects, kanbanCards } from "~/db/schema";
 import { eq } from "drizzle-orm";
-import type { Project, CreateProjectData } from "~/db/types";
+import type { Project, CreateProjectData, UpdateProjectData } from "~/db/types";
 
 /**
  * Project repository - handles all project-related database operations.
@@ -48,6 +48,30 @@ export class ProjectRepository {
       })
       .returning();
     
+    return this.mapToDomain(results[0]);
+  }
+
+  /**
+   * Update a project by ID
+   */
+  async updateProject(id: string, updates: UpdateProjectData): Promise<Project> {
+    const updateData: Partial<typeof projects.$inferInsert> = {
+      updatedAt: updates.updatedAt,
+    };
+
+    if (updates.name !== undefined) updateData.name = updates.name;
+    if (updates.filePath !== undefined) updateData.filePath = updates.filePath;
+
+    const results = await db
+      .update(projects)
+      .set(updateData)
+      .where(eq(projects.id, id))
+      .returning();
+
+    if (results.length === 0) {
+      throw new Error("Project not found");
+    }
+
     return this.mapToDomain(results[0]);
   }
 

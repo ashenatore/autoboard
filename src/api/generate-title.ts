@@ -9,10 +9,6 @@ export interface GenerateTitleResponse {
  * Generates a title for a card using AI
  */
 export async function generateTitle(cardId: string): Promise<GenerateTitleResponse> {
-  if (typeof window === "undefined") {
-    throw new Error("Cannot generate title on server side");
-  }
-  
   try {
     const response = await fetch("/api/generate-title", {
       method: "POST",

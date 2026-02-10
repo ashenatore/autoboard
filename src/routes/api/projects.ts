@@ -1,9 +1,10 @@
 import { APIEvent } from "@solidjs/start/server";
-import { projectRepository } from "~/db/repositories";
+import { projectRepository, autoModeSettingsRepository } from "~/db/repositories";
 import {
   GetProjectsUseCase,
   CreateProjectUseCase,
   DeleteProjectUseCase,
+  UpdateProjectUseCase,
 } from "~/use-cases";
 import { ValidationError, NotFoundError } from "~/use-cases/errors";
 
@@ -45,12 +46,36 @@ export async function POST({ request }: APIEvent) {
   }
 }
 
+export async function PATCH({ request }: APIEvent) {
+  try {
+    const body = await request.json();
+    const { id, name, filePath } = body;
+
+    const useCase = new UpdateProjectUseCase(projectRepository);
+    const result = await useCase.execute({ id, name, filePath });
+
+    return Response.json(result.project);
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return Response.json({ error: error.message }, { status: 400 });
+    }
+    if (error instanceof NotFoundError) {
+      return Response.json({ error: error.message }, { status: 404 });
+    }
+    console.error("Error updating project:", error);
+    return Response.json(
+      { error: "Failed to update project" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE({ request }: APIEvent) {
   try {
     const body = await request.json();
     const { id } = body;
 
-    const useCase = new DeleteProjectUseCase(projectRepository);
+    const useCase = new DeleteProjectUseCase(projectRepository, autoModeSettingsRepository);
     const result = await useCase.execute({ id });
 
     return Response.json(result);

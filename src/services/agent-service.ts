@@ -1,53 +1,15 @@
 /**
- * Agent Service - Minimal wrapper for Claude Agent SDK
- *
- * Kicks off prompts using the Anthropic Agent SDK to work on a project.
+ * Agent Service - Convenience wrapper around ClaudeProvider.
+ * Provides helper functions for common agent operations.
+ * All actual implementation is delegated to claudeProvider.
  */
 
-import { query, type Options } from "@anthropic-ai/claude-agent-sdk";
+import { claudeProvider, TOOL_PRESETS, DEFAULT_MODEL } from "./claude-provider";
+import type { AgentMessage } from "./agent-query.interface";
 
-/** Tool presets for agent execution */
-const TOOL_PRESETS = {
-  fullAccess: [
-    "Read",
-    "Write",
-    "Edit",
-    "Glob",
-    "Grep",
-    "Bash",
-    "WebSearch",
-    "WebFetch",
-  ] as const,
-};
-
-/**
- * System environment variables to pass to the SDK.
- */
-const SYSTEM_ENV_VARS = [
-  "PATH",
-  "HOME",
-  "SHELL",
-  "TERM",
-  "USER",
-  "LANG",
-  "LC_ALL",
-  "ANTHROPIC_API_KEY",
-  "ANTHROPIC_AUTH_TOKEN",
-  "ANTHROPIC_BASE_URL",
-];
-
-/**
- * Build environment object for the SDK from process.env.
- */
-function buildEnv(): Record<string, string | undefined> {
-  const env: Record<string, string | undefined> = {};
-  for (const key of SYSTEM_ENV_VARS) {
-    if (process.env[key]) {
-      env[key] = process.env[key];
-    }
-  }
-  return env;
-}
+// Re-export for backwards compatibility
+export { TOOL_PRESETS, DEFAULT_MODEL };
+export type { AgentMessage };
 
 /** Options for running the agent */
 export interface RunAgentOptions {
@@ -63,14 +25,8 @@ export interface RunAgentOptions {
   abortController?: AbortController;
   /** Max turns before stopping (default: 500) */
   maxTurns?: number;
-}
-
-/** Message from the agent stream */
-export interface AgentMessage {
-  type: string;
-  subtype?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
+  /** Session ID to resume a previous conversation */
+  resume?: string;
 }
 
 /**
@@ -82,33 +38,16 @@ export interface AgentMessage {
 export async function* runAgent(
   options: RunAgentOptions
 ): AsyncGenerator<AgentMessage> {
-  const {
-    prompt,
-    cwd,
-    model = "claude-sonnet-4-20250514",
-    systemPrompt,
-    abortController,
-    maxTurns = 500,
-  } = options;
-
-  const sdkOptions: Options = {
-    model,
-    cwd,
-    maxTurns,
+  yield* claudeProvider.query({
+    prompt: options.prompt,
+    model: options.model || DEFAULT_MODEL,
+    cwd: options.cwd,
+    maxTurns: options.maxTurns || 500,
     allowedTools: [...TOOL_PRESETS.fullAccess],
-    permissionMode: "bypassPermissions",
-    allowDangerouslySkipPermissions: true,
-    // Pass system environment variables so SDK can spawn processes
-    env: buildEnv(),
-    ...(systemPrompt && { systemPrompt }),
-    ...(abortController && { abortController }),
-  };
-
-  const stream = query({ prompt, options: sdkOptions });
-
-  for await (const msg of stream) {
-    yield msg as AgentMessage;
-  }
+    systemPrompt: options.systemPrompt,
+    abortController: options.abortController,
+    resume: options.resume,
+  });
 }
 
 /**
@@ -127,4 +66,26 @@ export async function runAgentToCompletion(
   }
 
   return messages;
+}
+
+/**
+ * Create an agent Query object that can be iterated and supports streamInput().
+ *
+ * @param options - Configuration for the agent run
+ * @returns Query object that can be iterated and has streamInput method
+ */
+export function createAgentQuery(
+  options: RunAgentOptions & { enableUserInput?: boolean }
+) {
+  return claudeProvider.createQuery({
+    prompt: options.prompt,
+    model: options.model || DEFAULT_MODEL,
+    cwd: options.cwd,
+    maxTurns: options.maxTurns || 500,
+    allowedTools: [...TOOL_PRESETS.fullAccess],
+    systemPrompt: options.systemPrompt,
+    abortController: options.abortController,
+    resume: options.resume,
+    enableUserInput: options.enableUserInput,
+  });
 }

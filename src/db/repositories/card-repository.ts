@@ -1,6 +1,6 @@
 import { db } from "~/db";
 import { kanbanCards } from "~/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, isNull, isNotNull } from "drizzle-orm";
 import type { Card, CreateCardData, UpdateCardData } from "~/db/types";
 
 /**
@@ -12,7 +12,10 @@ export class CardRepository {
    * Get all cards
    */
   async getAllCards(): Promise<Card[]> {
-    const results = await db.select().from(kanbanCards);
+    const results = await db
+      .select()
+      .from(kanbanCards)
+      .where(isNull(kanbanCards.archivedAt));
     return results.map(this.mapToDomain);
   }
 
@@ -23,8 +26,17 @@ export class CardRepository {
     const results = await db
       .select()
       .from(kanbanCards)
-      .where(eq(kanbanCards.projectId, projectId));
-    
+      .where(and(eq(kanbanCards.projectId, projectId), isNull(kanbanCards.archivedAt)));
+
+    return results.map(this.mapToDomain);
+  }
+
+  async getArchivedCardsByProjectId(projectId: string): Promise<Card[]> {
+    const results = await db
+      .select()
+      .from(kanbanCards)
+      .where(and(eq(kanbanCards.projectId, projectId), isNotNull(kanbanCards.archivedAt)));
+
     return results.map(this.mapToDomain);
   }
 
@@ -76,6 +88,8 @@ export class CardRepository {
     if (updates.columnId !== undefined) updateData.columnId = updates.columnId;
     if (updates.title !== undefined) updateData.title = updates.title;
     if (updates.description !== undefined) updateData.description = updates.description;
+    if (updates.sessionId !== undefined) updateData.sessionId = updates.sessionId;
+    if (updates.archivedAt !== undefined) updateData.archivedAt = updates.archivedAt;
 
     const results = await db
       .update(kanbanCards)
@@ -107,8 +121,10 @@ export class CardRepository {
       description: row.description,
       columnId: row.columnId,
       projectId: row.projectId,
+      sessionId: row.sessionId,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
+      archivedAt: row.archivedAt,
     };
   }
 }

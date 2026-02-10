@@ -1,31 +1,40 @@
 import { Title } from "@solidjs/meta";
-import { createSignal, createResource, onMount, Show } from "solid-js";
+import { createSignal, createResource, createEffect, onCleanup, Show } from "solid-js";
+import { isServer } from "solid-js/web";
+
 import KanbanBoard from "~/components/KanbanBoard";
 import TopBar from "~/components/TopBar";
 import CreateProjectModal from "~/components/CreateProjectModal";
-import { getProjects, createProject, deleteProject, type Project } from "~/api";
+import EditProjectModal from "~/components/EditProjectModal";
+import { openDrawer, registerRefetch } from "~/stores/log-drawer-store";
+import {
+  getProjects,
+  createProject,
+  updateProject,
+  deleteProject,
+  getAutoModeStatus,
+  toggleAutoMode,
+  setAutoModeConcurrency,
+  type Project,
+  type AutoModeStatus,
+} from "~/api";
 
 export default function Home() {
   const [selectedProjectId, setSelectedProjectId] = createSignal<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = createSignal(false);
+  const [projectToEdit, setProjectToEdit] = createSignal<Project | null>(null);
   const [refreshKey, setRefreshKey] = createSignal(0);
-  const [shouldFetch, setShouldFetch] = createSignal(false);
-  
-  // Only create resource on client side to avoid SSR issues
+  const [autoModeStatus, setAutoModeStatus] = createSignal<AutoModeStatus | null>(null);
+
   const [projects, { refetch }] = createResource(
-    () => {
-      // Only fetch when we're on the client and shouldFetch is true
-      if (!shouldFetch() || typeof window === "undefined") {
-        return null;
-      }
-      return refreshKey();
-    },
+    () => (isServer ? null : refreshKey()),
     getProjects,
     { initialValue: [] }
   );
 
   const handleSelectProject = (projectId: string) => {
     setSelectedProjectId(projectId);
+    localStorage.setItem("selectedProjectId", projectId);
   };
 
   const handleNewProject = () => {
@@ -33,13 +42,12 @@ export default function Home() {
   };
 
   const handleCreateProject = async (name: string, filePath: string) => {
-    if (typeof window === "undefined") return;
-    
     try {
       const newProject = await createProject(name, filePath);
       setIsCreateModalOpen(false);
       setRefreshKey((k) => k + 1);
       setSelectedProjectId(newProject.id);
+      localStorage.setItem("selectedProjectId", newProject.id);
     } catch (error) {
       console.error("Error creating project:", error);
       alert("Failed to create project. Please try again.");
@@ -47,14 +55,13 @@ export default function Home() {
   };
 
   const handleDeleteProject = async (projectId: string): Promise<void> => {
-    if (typeof window === "undefined") return;
-    
     try {
       await deleteProject(projectId);
       
       // If the deleted project was selected, clear selection
       if (selectedProjectId() === projectId) {
         setSelectedProjectId(null);
+        localStorage.removeItem("selectedProjectId");
       }
 
       setRefreshKey((k) => k + 1);
@@ -66,21 +73,96 @@ export default function Home() {
     }
   };
 
-  // Trigger fetch on client mount and auto-select first project
-  onMount(() => {
-    setShouldFetch(true);
-    // Wait for projects to load, then auto-select first one
-    const checkAndSelect = () => {
-      const projs = projects();
-      if (projs && projs.length > 0 && !selectedProjectId()) {
-        setSelectedProjectId(projs[0].id);
-      } else if (projs && projs.length === 0) {
-        // If projects haven't loaded yet, check again (but limit retries)
-        setTimeout(checkAndSelect, 100);
-      }
-    };
-    // Start checking after a short delay to allow fetch to start
-    setTimeout(checkAndSelect, 200);
+  const handleEditProject = (project: Project) => {
+    setProjectToEdit(project);
+  };
+
+  const handleUpdateProject = async (name: string, filePath: string) => {
+    const project = projectToEdit();
+    if (!project) return;
+
+    try {
+      await updateProject(project.id, name, filePath);
+      setProjectToEdit(null);
+      setRefreshKey((k) => k + 1);
+    } catch (error) {
+      console.error("Error updating project:", error);
+      alert("Failed to update project. Please try again.");
+    }
+  };
+
+  // Auto mode polling
+  let autoModePollInterval: ReturnType<typeof setInterval> | undefined;
+
+  const fetchAutoModeStatus = async () => {
+    const projectId = selectedProjectId();
+    if (!projectId) return;
+    try {
+      const status = await getAutoModeStatus(projectId);
+      setAutoModeStatus(status);
+    } catch {
+      // Ignore polling errors
+    }
+  };
+
+  createEffect(() => {
+    const projectId = selectedProjectId();
+
+    // Clear previous interval
+    if (autoModePollInterval) {
+      clearInterval(autoModePollInterval);
+      autoModePollInterval = undefined;
+    }
+
+    if (projectId) {
+      // Fetch immediately
+      fetchAutoModeStatus();
+      // Poll every 2 seconds
+      autoModePollInterval = setInterval(fetchAutoModeStatus, 2000);
+    } else {
+      setAutoModeStatus(null);
+    }
+  });
+
+  onCleanup(() => {
+    if (autoModePollInterval) {
+      clearInterval(autoModePollInterval);
+    }
+  });
+
+  const handleToggleAutoMode = async (enabled: boolean) => {
+    const projectId = selectedProjectId();
+    if (!projectId) return;
+    try {
+      await toggleAutoMode(projectId, enabled);
+      await fetchAutoModeStatus();
+    } catch (error) {
+      console.error("Failed to toggle auto mode:", error);
+    }
+  };
+
+  const handleSetConcurrency = async (value: number) => {
+    const projectId = selectedProjectId();
+    if (!projectId) return;
+    try {
+      await setAutoModeConcurrency(projectId, value);
+      await fetchAutoModeStatus();
+    } catch (error) {
+      console.error("Failed to set concurrency:", error);
+    }
+  };
+
+
+  // Restore last selected project or auto-select first project
+  createEffect(() => {
+    const projs = projects();
+    if (projs && projs.length > 0 && !selectedProjectId()) {
+      const savedId = localStorage.getItem("selectedProjectId");
+      const savedExists = savedId && projs.some((p) => p.id === savedId);
+      const projectId = savedExists ? savedId : projs[0].id;
+      setSelectedProjectId(projectId);
+      localStorage.setItem("selectedProjectId", projectId);
+    }
   });
 
   const hasProjects = () => {
@@ -116,14 +198,31 @@ export default function Home() {
           selectedProjectId={selectedProjectId()}
           onSelectProject={handleSelectProject}
           onNewProject={handleNewProject}
+          onEditProject={handleEditProject}
           onDeleteProject={handleDeleteProject}
+          autoModeEnabled={autoModeStatus()?.enabled ?? false}
+          autoModeConcurrency={autoModeStatus()?.maxConcurrency ?? 1}
+          autoModeActiveRuns={autoModeStatus()?.activeRunCount ?? 0}
+          onToggleAutoMode={handleToggleAutoMode}
+          onSetConcurrency={handleSetConcurrency}
         />
-        <KanbanBoard projectId={selectedProjectId()} />
+        <KanbanBoard
+          projectId={selectedProjectId()}
+          autoModeActive={(autoModeStatus()?.loopRunning || (autoModeStatus()?.activeRunCount ?? 0) > 0) ?? false}
+          onCardClick={openDrawer}
+          onRefetchReady={registerRefetch}
+        />
       </Show>
       <CreateProjectModal
         isOpen={isCreateModalOpen()}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={handleCreateProject}
+      />
+      <EditProjectModal
+        isOpen={projectToEdit() !== null}
+        onClose={() => setProjectToEdit(null)}
+        onSubmit={handleUpdateProject}
+        project={projectToEdit()}
       />
     </main>
   );

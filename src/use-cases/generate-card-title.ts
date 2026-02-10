@@ -20,7 +20,9 @@ export class GenerateCardTitleUseCase {
     private agentQuery: IAgentCodeQuery
   ) {}
 
-  async execute(input: GenerateCardTitleInput): Promise<GenerateCardTitleResult> {
+  async execute(
+    input: GenerateCardTitleInput
+  ): Promise<GenerateCardTitleResult> {
     const startTime = Date.now();
     console.log("[generate-title] ===== Starting title generation ===== ");
 
@@ -61,7 +63,9 @@ export class GenerateCardTitleUseCase {
     // Need description to generate title
     if (!kanbanCard.description) {
       console.error("[generate-title] Card missing description");
-      throw new ValidationError("Card must have a description to generate title");
+      throw new ValidationError(
+        "Card must have a description to generate title"
+      );
     }
 
     // Fetch the project to get the file path for cwd
@@ -70,10 +74,15 @@ export class GenerateCardTitleUseCase {
       throw new ValidationError("Card must be associated with a project");
     }
 
-    const project = await this.projectRepository.getProjectById(kanbanCard.projectId);
+    const project = await this.projectRepository.getProjectById(
+      kanbanCard.projectId
+    );
 
     if (!project) {
-      console.error("[generate-title] Project not found:", kanbanCard.projectId);
+      console.error(
+        "[generate-title] Project not found:",
+        kanbanCard.projectId
+      );
       throw new NotFoundError("Project not found");
     }
 
@@ -93,15 +102,15 @@ Description: ${kanbanCard.description}`;
     console.log("[generate-title] Starting agent query...");
     const stream = this.agentQuery.query({
       prompt,
-      model: "claude-haiku-4-5",
+      model: "claude-opus-4-6",
       cwd: projectPath,
-      maxTurns: 1,
+      maxTurns: 50,
       allowedTools: [],
     });
 
     console.log("[generate-title] Query options configured:", {
-      model: "claude-haiku-4-5",
-      maxTurns: 1,
+      model: "claude-opus-4-6",
+      maxTurns: 50,
       cwd: projectPath,
     });
 

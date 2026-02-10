@@ -15,7 +15,7 @@ import { ValidationError, NotFoundError, ConflictError } from "~/use-cases/error
  * Request body:
  * - cardId: string (required) - The ID of the card to run
  * - prompt?: string (optional) - Override the card description as the prompt
- * - model?: string (optional) - Model to use (default: claude-sonnet-4-20250514)
+ * - model?: string (optional) - Model to use (default: claude-opus-4-6)
  *
  * Returns:
  * - 200: { success: true, cardId, status: "started" }

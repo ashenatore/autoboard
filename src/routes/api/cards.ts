@@ -5,6 +5,7 @@ import {
   CreateCardUseCase,
   UpdateCardUseCase,
   DeleteCardUseCase,
+  GetArchivedCardsUseCase,
 } from "~/use-cases";
 import { ValidationError, NotFoundError } from "~/use-cases/errors";
 
@@ -12,6 +13,13 @@ export async function GET({ request }: APIEvent) {
   try {
     const url = new URL(request.url);
     const projectId = url.searchParams.get("projectId");
+    const archived = url.searchParams.get("archived");
+
+    if (archived === "true" && projectId) {
+      const useCase = new GetArchivedCardsUseCase(cardRepository);
+      const result = await useCase.execute({ projectId });
+      return Response.json(result.cards);
+    }
 
     const useCase = new GetCardsUseCase(cardRepository);
     const result = await useCase.execute({
@@ -51,7 +59,7 @@ export async function POST({ request }: APIEvent) {
 export async function PATCH({ request }: APIEvent) {
   try {
     const body = await request.json();
-    const { id, columnId, title, description } = body;
+    const { id, columnId, title, description, archivedAt } = body;
 
     const useCase = new UpdateCardUseCase(cardRepository);
     const result = await useCase.execute({
@@ -59,6 +67,7 @@ export async function PATCH({ request }: APIEvent) {
       columnId,
       title,
       description,
+      archivedAt: archivedAt ? new Date(archivedAt) : undefined,
     });
 
     return Response.json(result.card);

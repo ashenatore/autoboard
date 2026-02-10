@@ -16,6 +16,15 @@ export type { UpdateCardInput, UpdateCardResult } from "./update-card";
 export { DeleteCardUseCase } from "./delete-card";
 export type { DeleteCardInput, DeleteCardResult } from "./delete-card";
 
+export { ArchiveCardUseCase } from "./archive-card";
+export type { ArchiveCardInput, ArchiveCardResult } from "./archive-card";
+
+export { GetArchivedCardsUseCase } from "./get-archived-cards";
+export type {
+  GetArchivedCardsInput,
+  GetArchivedCardsResult,
+} from "./get-archived-cards";
+
 // Project use cases
 export { GetProjectsUseCase } from "./get-projects";
 export type { GetProjectsResult } from "./get-projects";
@@ -25,6 +34,9 @@ export type { CreateProjectInput, CreateProjectResult } from "./create-project";
 
 export { DeleteProjectUseCase } from "./delete-project";
 export type { DeleteProjectInput, DeleteProjectResult } from "./delete-project";
+
+export { UpdateProjectUseCase } from "./update-project";
+export type { UpdateProjectInput, UpdateProjectResult } from "./update-project";
 
 // Card run use cases
 export { StartCardRunUseCase } from "./start-card-run";
@@ -48,6 +60,16 @@ export type {
   GenerateCardTitleInput,
   GenerateCardTitleResult,
 } from "./generate-card-title";
+
+// Auto mode use cases
+export { ToggleAutoModeUseCase } from "./toggle-auto-mode";
+export type { ToggleAutoModeInput, ToggleAutoModeResult } from "./toggle-auto-mode";
+
+export { SetAutoModeConcurrencyUseCase } from "./set-auto-mode-concurrency";
+export type { SetAutoModeConcurrencyInput, SetAutoModeConcurrencyResult } from "./set-auto-mode-concurrency";
+
+export { GetAutoModeStatusUseCase } from "./get-auto-mode-status";
+export type { GetAutoModeStatusInput, GetAutoModeStatusResult } from "./get-auto-mode-status";
 
 // Errors
 export {

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { mkdirSync, existsSync } from "node:fs";
 import type { Project, CreateProjectData } from "~/db/types";
 import type { ProjectRepository } from "~/db/repositories/project-repository";
 import { ValidationError } from "./errors";
@@ -19,6 +20,11 @@ export class CreateProjectUseCase {
     // Validation
     if (!input.name || !input.filePath) {
       throw new ValidationError("Name and filePath are required");
+    }
+
+    // Ensure directory exists, create it if it doesn't
+    if (!existsSync(input.filePath)) {
+      mkdirSync(input.filePath, { recursive: true });
     }
 
     // Generate ID and timestamps
