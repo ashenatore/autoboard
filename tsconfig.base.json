@@ -5,7 +5,7 @@
     "moduleResolution": "bundler",
     "strict": true,
     "noEmit": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
   },
-  "exclude": ["node_modules", "apps", "packages"]
+  "exclude": ["node_modules", "apps", "packages"],
 }

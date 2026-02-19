@@ -1,0 +1,25 @@
+{
+  "defaultMode": "ask",
+  "permissions": {
+    "deny": [
+      "Bash(/mnt/app-data/dev/autoboard/.secrets)", 
+      "Read(/mnt/app-data/dev/autoboard/.secrets)",
+      "Edit(/mnt/app-data/dev/autoboard/.secrets)",
+      "Bash(sudo)",
+      "Bash(curl)",
+      "Bash(wget)",
+      "Bash(rm -rf /)"
+    ],
+    "allow": [
+      "Read(/mnt/app-data/dev/autoboard)",
+      "Edit(/mnt/app-data/dev/autoboard)",
+      "Bash(git)",
+      "Bash(npm test)",
+      "Bash(ls -R /mnt/app-data/dev/autoboard)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  }
+}
