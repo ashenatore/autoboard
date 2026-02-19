@@ -11,7 +11,7 @@
     }
   },
   "scripts": {
-    "build": "tsc"
+    "build": "pnpm --filter @autoboard/db build && pnpm --filter @autoboard/services build && tsc"
   },
   "peerDependencies": {
     "@autoboard/db": "workspace:*",
