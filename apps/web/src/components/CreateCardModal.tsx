@@ -41,7 +41,7 @@ export default function CreateCardModal(props: CreateCardModalProps) {
 
   if (!props.isOpen) return null;
   return (
-    <div className="modal-backdrop" onClick={handleBackdropClick} role="presentation">
+    <div className="modal-backdrop" onClick={handleBackdropClick} role="presentation" data-testid="create-card-modal">
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2 className="modal-title">Create New Feature</h2>
@@ -62,6 +62,7 @@ export default function CreateCardModal(props: CreateCardModalProps) {
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter feature title (optional - will be auto-generated if empty)"
               autoFocus
+              data-testid="card-title-input"
             />
           </div>
           <div className="modal-field">
@@ -76,6 +77,7 @@ export default function CreateCardModal(props: CreateCardModalProps) {
               placeholder="Enter feature description"
               rows={4}
               required
+              data-testid="card-description-input"
             />
           </div>
           <div className="modal-actions">
@@ -83,6 +85,7 @@ export default function CreateCardModal(props: CreateCardModalProps) {
               type="button"
               className="modal-button modal-button--secondary"
               onClick={props.onClose}
+              data-testid="create-card-cancel"
             >
               Cancel
             </button>
@@ -90,6 +93,7 @@ export default function CreateCardModal(props: CreateCardModalProps) {
               type="submit"
               className="modal-button modal-button--primary"
               disabled={!description.trim()}
+              data-testid="create-card-submit"
             >
               Create Feature
             </button>

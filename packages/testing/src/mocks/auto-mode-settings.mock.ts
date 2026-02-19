@@ -37,4 +37,8 @@ export class MockAutoModeSettingsRepository {
     this.upsertCalls = [];
     this.getByProjectIdCalls = [];
   }
+
+  deleteByProjectId(projectId: string): void {
+    this.settings.delete(projectId);
+  }
 }

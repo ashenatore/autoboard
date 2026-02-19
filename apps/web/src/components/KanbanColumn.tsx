@@ -31,6 +31,7 @@ export default function KanbanColumn(props: KanbanColumnProps) {
   return (
     <div
       ref={setNodeRef}
+      data-testid={`kanban-column-${props.column.id}`}
       className={`kanban-column kanban-column--${props.column.id} ${
         isOver ? "kanban-column--active" : ""
       }`}
@@ -42,7 +43,7 @@ export default function KanbanColumn(props: KanbanColumnProps) {
               {props.icon}
             </span>
           )}
-          <h2 className="kanban-column__title">{props.column.title}</h2>
+          <h2 className="kanban-column__title" data-testid="column-name">{props.column.title}</h2>
           <span className="kanban-column__count">{props.cards.length}</span>
         </div>
         {props.isGeneratingPlan && props.onStopPlanGeneration ? (

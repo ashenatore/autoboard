@@ -47,7 +47,7 @@ export default function CreateProjectModal(props: CreateProjectModalProps) {
 
   if (!props.isOpen) return null;
   return (
-    <div className="modal-backdrop" onClick={handleBackdropClick} role="presentation">
+    <div className="modal-backdrop" onClick={handleBackdropClick} role="presentation" data-testid="create-project-modal">
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2 className="modal-title">Open Directory</h2>
@@ -74,6 +74,7 @@ export default function CreateProjectModal(props: CreateProjectModalProps) {
               placeholder="/Users/you/projects/my-app"
               required
               autoFocus
+              data-testid="project-filepath-input"
             />
           </div>
           <div className="modal-field">
@@ -87,6 +88,7 @@ export default function CreateProjectModal(props: CreateProjectModalProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter project name (optional)"
+              data-testid="project-name-input"
             />
           </div>
           <div className="modal-actions">
@@ -94,6 +96,7 @@ export default function CreateProjectModal(props: CreateProjectModalProps) {
               type="button"
               className="modal-button modal-button--secondary"
               onClick={props.onClose}
+              data-testid="create-project-cancel"
             >
               Cancel
             </button>
@@ -101,6 +104,7 @@ export default function CreateProjectModal(props: CreateProjectModalProps) {
               type="submit"
               className="modal-button modal-button--primary"
               disabled={!filePath.trim()}
+              data-testid="create-project-submit"
             >
               Open Directory
             </button>

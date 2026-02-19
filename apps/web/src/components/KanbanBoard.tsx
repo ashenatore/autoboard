@@ -358,7 +358,7 @@ export default function KanbanBoard(props: KanbanBoardProps) {
   return (
     <>
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-        <div className="kanban-board">
+        <div className="kanban-board" data-testid="kanban-board">
           <div className="kanban-board__columns">
             {COLUMNS.map((column) => (
               <KanbanColumn

@@ -45,12 +45,13 @@ export default function TopBar(props: TopBarProps) {
 
   return (
     <>
-      <div className="top-bar">
+      <div className="top-bar" data-testid="top-bar">
         <button
           className="top-bar__open-button"
           onClick={props.onNewProject}
           aria-label="Open Directory"
           title="Open Directory"
+          data-testid="create-project-button"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -70,12 +71,13 @@ export default function TopBar(props: TopBarProps) {
           {props.projects.map((project) => (
             <div
               key={project.id}
+              data-testid={`project-button-${project.name}`}
               className={`top-bar__tab ${
                 props.selectedProjectId === project.id ? "top-bar__tab--active" : ""
               }`}
               onClick={() => props.onSelectProject(project.id)}
             >
-              <span className="top-bar__tab-label">{project.name}</span>
+              <span className="top-bar__tab-label" data-testid={`project-label-${project.name}`}>{project.name}</span>
               <button
                 className="top-bar__tab-edit"
                 onClick={(e) => {
