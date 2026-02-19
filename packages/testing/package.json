@@ -1,5 +1,5 @@
 {
-  "name": "@autoboard/domain",
+  "name": "@autoboard/testing",
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.js",
@@ -11,18 +11,17 @@
     }
   },
   "scripts": {
-    "build": "tsc",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "build": "tsc"
   },
-  "dependencies": {
+  "peerDependencies": {
     "@autoboard/db": "workspace:*",
-    "@autoboard/services": "workspace:*",
-    "@autoboard/shared": "workspace:*"
+    "@autoboard/shared": "workspace:*",
+    "@autoboard/services": "workspace:*"
   },
   "devDependencies": {
-    "@autoboard/testing": "workspace:*",
+    "@autoboard/db": "workspace:*",
+    "@autoboard/services": "workspace:*",
+    "@autoboard/shared": "workspace:*",
     "typescript": "^5.0.0",
     "vitest": "^2.1.0"
   }

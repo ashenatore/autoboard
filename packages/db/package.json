@@ -15,15 +15,20 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "better-sqlite3": "^11.7.0",
     "drizzle-orm": "^0.36.4"
   },
   "devDependencies": {
+    "@autoboard/testing": "workspace:*",
     "@types/better-sqlite3": "^7.6.12",
     "drizzle-kit": "^0.30.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^2.1.0"
   }
 }
