@@ -39,3 +39,6 @@ node_modules/
 coverage
 **/coverage/
 *.lcov
+
+# TypeScript build cache
+*.tsbuildinfo
