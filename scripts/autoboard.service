@@ -1,0 +1,18 @@
+[Unit]
+Description=Autoboard Production Service
+After=network.target
+
+[Service]
+Type=simple
+User=ashenatore
+Group=ashenatore
+WorkingDirectory=/mnt/app-data/autoboard/api
+EnvironmentFile=/mnt/app-data/autoboard/api/.env
+# We start the API on 3001 and the Frontend on 3000
+# Clean up any zombie processes, then start the API and Gateway
+ExecStartPre=/usr/bin/bash -c "fuser -k 3000/tcp 3001/tcp || true"
+ExecStart=/usr/bin/bash -c "PORT=3001 /usr/bin/node dist/index.js & /usr/bin/node gateway.js"
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
