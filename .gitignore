@@ -34,3 +34,8 @@ Thumbs.db
 /drizzle/*.db
 .pnpm-store/
 node_modules/
+
+# Test coverage
+coverage
+**/coverage/
+*.lcov
