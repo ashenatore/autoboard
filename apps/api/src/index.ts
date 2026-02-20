@@ -73,6 +73,19 @@ api.delete("/plan-generation", planGeneration.delete);
 
 app.route("/api", api);
 
+logger.info("Routes registered", {
+  routes: [
+    "GET/POST/PATCH/DELETE /api/cards",
+    "GET/POST/PATCH/DELETE /api/projects",
+    "POST/GET/DELETE /api/run-card",
+    "GET/POST/PATCH /api/auto-mode",
+    "POST/GET/DELETE /api/plan-generation",
+    "POST /api/generate-title",
+    "GET /api/card-logs*",
+    "POST /api/card-input"
+  ].join(", ")
+});
+
 const port = Number(process.env.PORT) || 3001;
 
 async function main() {

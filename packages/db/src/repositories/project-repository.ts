@@ -2,10 +2,14 @@ import { db } from "../client.js";
 import { projects, kanbanCards } from "../schema.js";
 import { eq } from "drizzle-orm";
 import type { Project, CreateProjectData, UpdateProjectData } from "../types.js";
+import { getLogger } from "@autoboard/logger";
+
+const logger = getLogger("ProjectRepository");
 
 export class ProjectRepository {
   async getAllProjects(): Promise<Project[]> {
     const results = await db.select().from(projects);
+    logger.debug("Retrieved all projects", { projectCount: results.length });
     return results.map(this.mapToDomain);
   }
 
@@ -15,6 +19,10 @@ export class ProjectRepository {
       .from(projects)
       .where(eq(projects.id, id))
       .limit(1);
+    logger.debug("Retrieved project by ID", {
+      id,
+      found: results.length > 0
+    });
     if (results.length === 0) return null;
     return this.mapToDomain(results[0]);
   }
@@ -30,6 +38,10 @@ export class ProjectRepository {
         updatedAt: data.updatedAt,
       })
       .returning();
+    logger.debug("Project created in database", {
+      id: data.id,
+      name: data.name
+    });
     return this.mapToDomain(results[0]);
   }
 
@@ -45,16 +57,26 @@ export class ProjectRepository {
       .set(updateData)
       .where(eq(projects.id, id))
       .returning();
-    if (results.length === 0) throw new Error("Project not found");
+    if (results.length === 0) {
+      logger.error("Project update failed - not found", { id });
+      throw new Error("Project not found");
+    }
+    logger.debug("Project updated in database", {
+      id,
+      hasName: updates.name !== undefined,
+      hasFilePath: updates.filePath !== undefined
+    });
     return this.mapToDomain(results[0]);
   }
 
   async deleteProject(id: string): Promise<void> {
     await db.delete(projects).where(eq(projects.id, id));
+    logger.debug("Project deleted from database", { id });
   }
 
   async deleteCardsByProjectId(projectId: string): Promise<void> {
     await db.delete(kanbanCards).where(eq(kanbanCards.projectId, projectId));
+    logger.debug("Deleted cards by project", { projectId });
   }
 
   private mapToDomain(row: typeof projects.$inferSelect): Project {

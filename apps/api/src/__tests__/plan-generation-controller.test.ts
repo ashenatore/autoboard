@@ -155,7 +155,7 @@ describe('PlanGenerationController', () => {
       const mockContext = {
         req: {
           json: vi.fn().mockResolvedValue({
-            projectId: 'proj-1',
+            id: 'proj-1',
           }),
           url: 'http://localhost/api/plan-generation',
         },

@@ -1,5 +1,8 @@
 import { EventEmitter } from "events";
+import { getLogger } from "@autoboard/logger";
 import type { AgentMessage } from "./agent-query.interface.js";
+
+const logger = getLogger("CardRunState");
 
 export interface CardRunState {
   abortController: AbortController;
@@ -44,6 +47,11 @@ class CardRunStateService {
       sequenceCounter: initialSequence,
     });
     this.emitter.emit(`statusChange:${cardId}`, { cardId, status: "running" });
+
+    logger.debug("Card run state created", {
+      cardId,
+      initialSequence
+    });
   }
 
   updateRunStatus(cardId: string, status: "running" | "completed" | "error", error?: string): void {
@@ -52,12 +60,26 @@ class CardRunStateService {
       run.status = status;
       if (error) run.error = error;
       this.emitter.emit(`statusChange:${cardId}`, { cardId, status, error });
+
+      logger.info("Card run status updated", {
+        cardId,
+        status,
+        hasError: !!error
+      });
     }
   }
 
   addMessage(cardId: string, message: AgentMessage): void {
     const run = this.activeRuns.get(cardId);
-    if (run) run.messages.push(message);
+    if (run) {
+      run.messages.push(message);
+
+      logger.debug("Card run message added", {
+        cardId,
+        messageType: message.type,
+        totalMessages: run.messages.length
+      });
+    }
   }
 
   emitLog(cardId: string, type: string, content: string): number {
@@ -74,12 +96,21 @@ class CardRunStateService {
     if (run) {
       run.needsInput = needsInput;
       this.emitter.emit(`needsInput:${cardId}`, { cardId, needsInput });
+
+      logger.debug("Card run needs input updated", {
+        cardId,
+        needsInput
+      });
     }
   }
 
   setQuery(cardId: string, queryObj: any): void {
     const run = this.activeRuns.get(cardId);
-    if (run) run.query = queryObj;
+    if (run) {
+      run.query = queryObj;
+
+      logger.debug("Card run query set", { cardId });
+    }
   }
 
   getAllRuns(): Map<string, CardRunState> {
@@ -121,11 +152,18 @@ class CardRunStateService {
         status: "error",
         error: "Cancelled by user",
       });
+
+      logger.info("Card run cancelled", {
+        cardId,
+        wasRunning: true
+      });
     }
   }
 
   removeRun(cardId: string): void {
     this.activeRuns.delete(cardId);
+
+    logger.debug("Card run state removed", { cardId });
   }
 }
 

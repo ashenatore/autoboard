@@ -8,6 +8,9 @@ import {
 } from "@autoboard/services";
 import { NotFoundError, ValidationError } from "@autoboard/shared";
 import { CreateCardUseCase } from "./create-card.js";
+import { getLogger } from "@autoboard/logger";
+
+const logger = getLogger("GeneratePlan");
 
 const SYSTEM_PROMPT = `You are a task breakdown assistant. Given a description of an application or feature, break it down into actionable todo items.
 
@@ -39,14 +42,30 @@ export class GeneratePlanUseCase {
   }
 
   async execute(input: GeneratePlanInput): Promise<GeneratePlanResult> {
-    if (!input.projectId) throw new ValidationError("projectId is required");
-    if (!input.description?.trim())
+    if (!input.projectId) {
+      logger.warn("Generate plan validation failed", {
+        hasProjectId: !!input.projectId,
+        hasDescription: !!input.description
+      });
+      throw new ValidationError("projectId is required");
+    }
+    if (!input.description?.trim()) {
+      logger.warn("Generate plan validation failed", {
+        hasProjectId: !!input.projectId,
+        hasDescription: !!input.description
+      });
       throw new ValidationError("description is required");
+    }
 
     const project = await this.projectRepository.getProjectById(
       input.projectId
     );
-    if (!project) throw new NotFoundError("Project not found");
+    if (!project) {
+      logger.warn("Generate plan failed - project not found", {
+        projectId: input.projectId
+      });
+      throw new NotFoundError("Project not found");
+    }
 
     const createdCards: Card[] = [];
     const addTodo = async (title: string, description: string) => {
@@ -57,6 +76,11 @@ export class GeneratePlanUseCase {
         projectId: input.projectId,
       });
       createdCards.push(result.card);
+      const titleLength = title ? title.length : 0;
+      logger.debug("Plan card created", {
+        cardId: result.card.id,
+        titleLength
+      });
       return { id: result.card.id };
     };
 
@@ -76,6 +100,11 @@ export class GeneratePlanUseCase {
     for await (const _ of query) {
       // Consume to completion; add_todo calls happen via tool execution
     }
+
+    logger.info("Plan generation completed", {
+      projectId: input.projectId,
+      cardsCreated: createdCards.length
+    });
 
     return { cards: createdCards };
   }

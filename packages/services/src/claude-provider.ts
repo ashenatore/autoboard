@@ -7,12 +7,15 @@ import {
   type Options,
   type PermissionMode,
 } from "@anthropic-ai/claude-agent-sdk";
+import { getLogger } from "@autoboard/logger";
 import type {
   IAgentCodeQuery,
   AgentQueryOptions,
   AgentMessage,
   AgentQuery,
 } from "./agent-query.interface.js";
+
+const logger = getLogger("ClaudeProvider");
 
 export const DEFAULT_MODEL = "claude-opus-4-6";
 
@@ -67,6 +70,16 @@ class ClaudeProvider implements IAgentCodeQuery {
       resume,
     } = options;
 
+    logger.debug("Claude query starting", {
+      model,
+      hasCwd: !!cwd,
+      maxTurns,
+      toolCount: allowedTools.length,
+      hasMcpServers: !!mcpServers,
+      hasSystemPrompt: !!systemPrompt,
+      hasResume: !!resume
+    });
+
     const sdkOptions: Options = {
       model,
       cwd,
@@ -84,9 +97,18 @@ class ClaudeProvider implements IAgentCodeQuery {
         }),
     };
 
-    const stream = query({ prompt, options: sdkOptions });
-    for await (const msg of stream) {
-      yield msg as AgentMessage;
+    try {
+      const stream = query({ prompt, options: sdkOptions });
+      for await (const msg of stream) {
+        yield msg as AgentMessage;
+      }
+      logger.debug("Claude query stream completed", { model });
+    } catch (error) {
+      logger.error("Claude query failed", {
+        model,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
     }
   }
 
@@ -108,6 +130,14 @@ class ClaudeProvider implements IAgentCodeQuery {
       resume,
       enableUserInput,
     } = options;
+
+    logger.debug("Creating Claude query", {
+      model,
+      hasCwd: !!cwd,
+      maxTurns,
+      toolCount: allowedTools.length,
+      enableUserInput
+    });
 
     const tools = enableUserInput
       ? [...allowedTools, "AskUserQuestion"]

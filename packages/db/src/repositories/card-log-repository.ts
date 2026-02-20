@@ -3,6 +3,9 @@ import { cardLogs } from "../schema.js";
 import { eq, and, gt, asc } from "drizzle-orm";
 import type { CardLog } from "../types.js";
 import { randomUUID } from "crypto";
+import { getLogger } from "@autoboard/logger";
+
+const logger = getLogger("CardLogRepository");
 
 export class CardLogRepository {
   async createLog(data: {
@@ -22,6 +25,12 @@ export class CardLogRepository {
         createdAt: new Date(),
       })
       .returning();
+    logger.debug("Card log created", {
+      cardId: data.cardId,
+      type: data.type,
+      sequence: data.sequence,
+      contentLength: data.content.length
+    });
     return this.mapToDomain(results[0]);
   }
 
@@ -31,6 +40,10 @@ export class CardLogRepository {
       .from(cardLogs)
       .where(eq(cardLogs.cardId, cardId))
       .orderBy(asc(cardLogs.sequence));
+    logger.debug("Retrieved card logs", {
+      cardId,
+      logCount: results.length
+    });
     return results.map(this.mapToDomain);
   }
 
@@ -40,11 +53,17 @@ export class CardLogRepository {
       .from(cardLogs)
       .where(and(eq(cardLogs.cardId, cardId), gt(cardLogs.sequence, afterSequence)))
       .orderBy(asc(cardLogs.sequence));
+    logger.debug("Retrieved card logs after sequence", {
+      cardId,
+      afterSequence,
+      logCount: results.length
+    });
     return results.map(this.mapToDomain);
   }
 
   async deleteLogsByCardId(cardId: string): Promise<void> {
     await db.delete(cardLogs).where(eq(cardLogs.cardId, cardId));
+    logger.debug("Card logs deleted", { cardId });
   }
 
   private mapToDomain(row: typeof cardLogs.$inferSelect): CardLog {

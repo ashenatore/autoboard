@@ -44,6 +44,7 @@ class AutoModeLoop implements IAutoModeLoop {
       isProcessing: false,
     };
     this.loops.set(projectId, state);
+    logger.debug("Auto mode loop started", { projectId });
     this.poll(projectId);
   }
 
@@ -52,6 +53,7 @@ class AutoModeLoop implements IAutoModeLoop {
     if (!state) return;
     clearInterval(state.intervalId);
     this.loops.delete(projectId);
+    logger.debug("Auto mode loop stopped", { projectId });
   }
 
   getStatus(projectId: string): {
@@ -75,6 +77,7 @@ class AutoModeLoop implements IAutoModeLoop {
     try {
       const settings = await autoModeSettingsRepository.getByProjectId(projectId);
       if (!settings || !settings.enabled) {
+        logger.debug("Stopping disabled auto mode loop", { projectId });
         this.stopLoop(projectId);
         return;
       }
@@ -101,6 +104,13 @@ class AutoModeLoop implements IAutoModeLoop {
       const todoCards = allCards.filter((c) => c.columnId === "todo");
       const cardsToRun = todoCards.slice(0, availableSlots);
 
+      logger.debug("Auto mode poll", {
+        projectId,
+        todoCardsCount: todoCards.length,
+        availableSlots,
+        inProgressCount: inProgressCards.length
+      });
+
       const useCase = new StartCardRunUseCase(cardRepository, projectRepository);
 
       for (const card of cardsToRun) {
@@ -115,6 +125,10 @@ class AutoModeLoop implements IAutoModeLoop {
           });
           await useCase.execute({ cardId: card.id });
           state.activeCardIds.add(card.id);
+          logger.debug("Auto mode started card", {
+            projectId,
+            cardId: card.id
+          });
         } catch (error) {
           logger.error(`Failed to start card ${card.id}`, error);
           try {

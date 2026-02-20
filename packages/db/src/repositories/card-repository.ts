@@ -2,6 +2,9 @@ import { db } from "../client.js";
 import { kanbanCards } from "../schema.js";
 import { eq, and, isNull, isNotNull } from "drizzle-orm";
 import type { Card, CreateCardData, UpdateCardData } from "../types.js";
+import { getLogger } from "@autoboard/logger";
+
+const logger = getLogger("CardRepository");
 
 export class CardRepository {
   async getAllCards(): Promise<Card[]> {
@@ -9,6 +12,7 @@ export class CardRepository {
       .select()
       .from(kanbanCards)
       .where(isNull(kanbanCards.archivedAt));
+    logger.debug("Retrieved all cards", { cardCount: results.length });
     return results.map(this.mapToDomain);
   }
 
@@ -17,6 +21,10 @@ export class CardRepository {
       .select()
       .from(kanbanCards)
       .where(and(eq(kanbanCards.projectId, projectId), isNull(kanbanCards.archivedAt)));
+    logger.debug("Retrieved cards by project", {
+      projectId,
+      cardCount: results.length
+    });
     return results.map(this.mapToDomain);
   }
 
@@ -25,6 +33,10 @@ export class CardRepository {
       .select()
       .from(kanbanCards)
       .where(and(eq(kanbanCards.projectId, projectId), isNotNull(kanbanCards.archivedAt)));
+    logger.debug("Retrieved archived cards", {
+      projectId,
+      cardCount: results.length
+    });
     return results.map(this.mapToDomain);
   }
 
@@ -34,6 +46,10 @@ export class CardRepository {
       .from(kanbanCards)
       .where(eq(kanbanCards.id, id))
       .limit(1);
+    logger.debug("Retrieved card by ID", {
+      id,
+      found: results.length > 0
+    });
     if (results.length === 0) return null;
     return this.mapToDomain(results[0]);
   }
@@ -51,6 +67,11 @@ export class CardRepository {
         updatedAt: data.updatedAt,
       })
       .returning();
+    logger.debug("Card created in database", {
+      id: data.id,
+      columnId: data.columnId,
+      projectId: data.projectId
+    });
     return this.mapToDomain(results[0]);
   }
 
@@ -69,12 +90,22 @@ export class CardRepository {
       .set(updateData)
       .where(eq(kanbanCards.id, id))
       .returning();
-    if (results.length === 0) throw new Error("Card not found");
+    if (results.length === 0) {
+      logger.error("Card update failed - not found", { id });
+      throw new Error("Card not found");
+    }
+    logger.debug("Card updated in database", {
+      id,
+      hasColumnId: updates.columnId !== undefined,
+      hasTitle: updates.title !== undefined,
+      hasDescription: updates.description !== undefined
+    });
     return this.mapToDomain(results[0]);
   }
 
   async deleteCard(id: string): Promise<void> {
     await db.delete(kanbanCards).where(eq(kanbanCards.id, id));
+    logger.debug("Card deleted from database", { id });
   }
 
   private mapToDomain(row: typeof kanbanCards.$inferSelect): Card {

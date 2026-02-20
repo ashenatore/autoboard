@@ -2,6 +2,9 @@ import { db } from "../client.js";
 import { autoModeSettings } from "../schema.js";
 import { eq } from "drizzle-orm";
 import type { AutoModeSettings, UpdateAutoModeData } from "../types.js";
+import { getLogger } from "@autoboard/logger";
+
+const logger = getLogger("AutoModeSettingsRepository");
 
 export class AutoModeSettingsRepository {
   async getByProjectId(projectId: string): Promise<AutoModeSettings | null> {
@@ -10,6 +13,10 @@ export class AutoModeSettingsRepository {
       .from(autoModeSettings)
       .where(eq(autoModeSettings.projectId, projectId))
       .limit(1);
+    logger.debug("Retrieved auto mode settings", {
+      projectId,
+      found: results.length > 0
+    });
     if (results.length === 0) return null;
     return this.mapToDomain(results[0]);
   }
@@ -32,11 +39,17 @@ export class AutoModeSettingsRepository {
         },
       })
       .returning();
+    logger.debug("Auto mode settings upserted", {
+      projectId,
+      enabled: updates.enabled ?? false,
+      maxConcurrency: updates.maxConcurrency ?? 1
+    });
     return this.mapToDomain(results[0]);
   }
 
   async deleteByProjectId(projectId: string): Promise<void> {
     await db.delete(autoModeSettings).where(eq(autoModeSettings.projectId, projectId));
+    logger.debug("Auto mode settings deleted", { projectId });
   }
 
   async getAllEnabled(): Promise<AutoModeSettings[]> {
@@ -44,6 +57,9 @@ export class AutoModeSettingsRepository {
       .select()
       .from(autoModeSettings)
       .where(eq(autoModeSettings.enabled, true));
+    logger.debug("Retrieved all enabled auto mode settings", {
+      count: results.length
+    });
     return results.map(this.mapToDomain);
   }
 

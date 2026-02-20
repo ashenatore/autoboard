@@ -30,6 +30,10 @@ export class StartCardRunUseCase {
   async execute(input: StartCardRunInput): Promise<StartCardRunResult> {
     if (!input.cardId) throw new ValidationError("cardId is required");
     if (cardRunStateService.isRunning(input.cardId)) {
+      logger.debug("Card run validation", {
+        cardId: input.cardId,
+        alreadyRunning: true
+      });
       throw new ConflictError("Card is already being processed");
     }
 
@@ -39,6 +43,10 @@ export class StartCardRunUseCase {
 
     const project = await this.projectRepository.getProjectById(kanbanCard.projectId);
     if (!project) throw new NotFoundError("Project not found");
+    logger.debug("Card project loaded", {
+      cardId: input.cardId,
+      projectId: project.id
+    });
 
     const projectPath = project.filePath;
     const prompt = input.prompt || kanbanCard.description || kanbanCard.title || "";
@@ -48,6 +56,12 @@ export class StartCardRunUseCase {
     const existingLogs = await cardLogRepository.getLogsByCardId(input.cardId);
     const maxSequence =
       existingLogs.length > 0 ? Math.max(...existingLogs.map((l) => l.sequence)) : 0;
+
+    logger.debug("Creating card run state", {
+      cardId: input.cardId,
+      hasExistingLogs: existingLogs.length > 0,
+      maxSequence
+    });
 
     cardRunStateService.createRun(input.cardId, abortController, maxSequence);
     const resumeSessionId = kanbanCard.sessionId || undefined;
@@ -60,6 +74,13 @@ export class StartCardRunUseCase {
       abortController,
       resumeSessionId
     );
+
+    logger.info("Card run initiated", {
+      cardId: input.cardId,
+      hasPrompt: !!input.prompt,
+      model: input.model,
+      hasResumeSession: !!resumeSessionId
+    });
 
     return {
       success: true,
@@ -120,6 +141,11 @@ export class StartCardRunUseCase {
         sequence: seq,
       });
       cardRunStateService.updateRunStatus(cardId, "completed");
+
+      logger.debug("Card run completed successfully", {
+        cardId,
+        hadSessionId: !!capturedSessionId
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       const seq = cardRunStateService.emitLog(cardId, "error", errorMessage);
@@ -141,6 +167,11 @@ export class StartCardRunUseCase {
         updatedAt: new Date(),
       }).catch(() => {});
       cardRunStateService.updateRunStatus(cardId, "error", errorMessage);
+
+      logger.error("Card run failed", {
+        cardId,
+        error: errorMessage
+      });
     }
   }
 

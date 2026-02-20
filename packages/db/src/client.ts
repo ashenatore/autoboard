@@ -4,6 +4,9 @@ import * as schema from "./schema.js";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { mkdirSync } from "fs";
+import { getLogger } from "@autoboard/logger";
+
+const logger = getLogger("Database");
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -18,4 +21,7 @@ try {
 }
 
 const sqlite = new Database(dbPath);
+logger.info("Database connection established", {
+  dbPath: dbDir.replace(/\/[^/]*$/, "/[db].sqlite")
+});
 export const db = drizzle(sqlite, { schema });
