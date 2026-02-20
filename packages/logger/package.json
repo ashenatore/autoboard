@@ -1,5 +1,5 @@
 {
-  "name": "@autoboard/domain",
+  "name": "@autoboard/logger",
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.js",
@@ -16,14 +16,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },
-  "dependencies": {
-    "@autoboard/db": "workspace:*",
-    "@autoboard/logger": "workspace:*",
-    "@autoboard/services": "workspace:*",
-    "@autoboard/shared": "workspace:*"
-  },
   "devDependencies": {
-    "@autoboard/testing": "workspace:*",
+    "@types/node": "^20.19.33",
     "typescript": "^5.0.0",
     "vitest": "^2.1.0"
   }

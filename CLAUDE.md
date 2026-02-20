@@ -19,6 +19,7 @@ This is a monorepo with the following packages:
 - `packages/domain/` - Business logic use cases
 - `packages/services/` - External integrations (Claude, MCP)
 - `packages/shared/` - Shared types and errors
+- `packages/logger/` - Structured logging framework
 
 ## Architecture
 
@@ -86,3 +87,52 @@ For detailed architecture documentation, see [docs/CODEBASE_MAP.md](docs/CODEBAS
 - Card execution state is in-memory only (lost on restart)
 - Auto-mode polling runs every 3 seconds
 - Claude provider uses `bypassPermissions` by default
+
+## Logging
+
+AutoBoard uses a unified logging framework (`@autoboard/logger`) across all packages and applications.
+
+### Usage
+
+```typescript
+import { getLogger } from "@autoboard/logger";
+
+const logger = getLogger("MyComponent");
+
+logger.error("Error message", error);  // Errors to stderr
+logger.warn("Warning message");         // Warnings to stderr
+logger.info("Info message");            // Info to stdout
+logger.debug("Debug message");          // Debug to stdout (hidden by default)
+```
+
+### Log Levels
+
+The logger supports four levels (in order of verbosity):
+
+| Level | Description | Default |
+|-------|-------------|---------|
+| `debug` | Detailed debugging information | Hidden |
+| `info` | General informational messages | **Shown** |
+| `warn` | Warning messages | Shown |
+| `error` | Error messages | Shown |
+
+### Configuration
+
+**Backend (Node.js):**
+Set the `LOG_LEVEL` environment variable:
+```bash
+LOG_LEVEL=debug npm run dev  # Show all logs
+LOG_LEVEL=error npm run dev  # Show only errors
+```
+
+**Frontend (Browser):**
+Set `window.LOG_LEVEL` at runtime or `VITE_LOG_LEVEL` at build time:
+```javascript
+window.LOG_LEVEL = 'debug';  // Runtime override
+```
+
+### Log Format
+
+**Backend:** `2025-02-20T10:30:45.123Z [info] MyComponent: Message here`
+
+**Frontend:** `[MyComponent] Message here` (uses browser console methods)

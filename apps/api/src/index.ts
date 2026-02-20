@@ -5,6 +5,7 @@ import {
   projectRepository,
   autoModeSettingsRepository,
 } from "@autoboard/db";
+import { getLogger } from "@autoboard/logger";
 import { autoModeLoop } from "./auto-mode-loop.js";
 import { createCardsController } from "./controllers/cards-controller.js";
 import { createProjectsController } from "./controllers/projects-controller.js";
@@ -13,6 +14,8 @@ import { createCardLogsController } from "./controllers/card-logs-controller.js"
 import { createAutoModeController } from "./controllers/auto-mode-controller.js";
 import { createGenerateTitleController } from "./controllers/generate-title-controller.js";
 import { createPlanGenerationController } from "./controllers/plan-generation-controller.js";
+
+const logger = getLogger("API");
 
 const app = new Hono();
 
@@ -80,7 +83,7 @@ async function main() {
       port,
     },
     (info) => {
-      console.log(`API server running at http://localhost:${info.port}/api`);
+      logger.info(`API server running at http://localhost:${info.port}/api`);
     }
   );
 }

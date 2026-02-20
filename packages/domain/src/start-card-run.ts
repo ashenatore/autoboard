@@ -3,6 +3,9 @@ import type { ProjectRepository } from "@autoboard/db";
 import { cardLogRepository } from "@autoboard/db";
 import { cardRunStateService, createAgentQuery, type AgentMessage } from "@autoboard/services";
 import { ValidationError, NotFoundError, ConflictError } from "@autoboard/shared";
+import { getLogger } from "@autoboard/logger";
+
+const logger = getLogger("StartCardRun");
 
 export interface StartCardRunInput {
   cardId: string;
@@ -102,7 +105,7 @@ export class StartCardRunUseCase {
         await this.cardRepository.updateCard(cardId, {
           sessionId: capturedSessionId,
           updatedAt: new Date(),
-        }).catch((err) => console.error(`[Card ${cardId}] Failed to save session ID:`, err));
+        }).catch((err) => logger.error(`Failed to save session ID for card ${cardId}`, err));
       }
 
       await this.cardRepository.updateCard(cardId, {

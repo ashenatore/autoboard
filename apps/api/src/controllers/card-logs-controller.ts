@@ -1,6 +1,9 @@
 import type { Context } from "hono";
 import { cardLogRepository } from "@autoboard/db";
 import { cardRunStateService } from "@autoboard/services";
+import { getLogger } from "@autoboard/logger";
+
+const logger = getLogger("CardLogsController");
 
 export function createCardLogsController() {
   return {
@@ -14,7 +17,7 @@ export function createCardLogsController() {
         const logs = await cardLogRepository.getLogsByCardId(cardId);
         return c.json(logs);
       } catch (error) {
-        console.error("Error fetching card logs:", error);
+        logger.error("Error fetching card logs", error);
         return c.json({ error: "Failed to fetch card logs" }, 500);
       }
     },
@@ -121,7 +124,7 @@ export function createCardLogsController() {
         });
         return c.json({ success: true });
       } catch (error) {
-        console.error("Error sending card input:", error);
+        logger.error("Error sending card input", error);
         return c.json({ error: "Failed to send input" }, 500);
       }
     },

@@ -6,6 +6,7 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
+import { getLogger } from "@autoboard/logger";
 import KanbanColumn from "./KanbanColumn";
 import CreateCardModal from "./CreateCardModal";
 import PlanGenerationModal from "./PlanGenerationModal";
@@ -27,6 +28,8 @@ import {
   cancelPlanGeneration,
 } from "~/api";
 import type { Card } from "~/api/cards";
+
+const logger = getLogger("KanbanBoard");
 
 const COLUMN_ICONS: Record<string, ReactNode> = {
   todo: (
@@ -140,7 +143,7 @@ export default function KanbanBoard(props: KanbanBoardProps) {
       const data = await getCards(props.projectId);
       setCards(data);
     } catch (e) {
-      console.error(e);
+      logger.error("Failed to load cards", e);
     }
   }, [props.projectId]);
 
@@ -161,7 +164,7 @@ export default function KanbanBoard(props: KanbanBoardProps) {
     if (isArchivedModalOpen && props.projectId) {
       getArchivedCards(props.projectId)
         .then(setArchivedCards)
-        .catch(console.error);
+        .catch((e) => logger.error("Failed to load archived cards", e));
     }
   }, [isArchivedModalOpen, props.projectId]);
 
@@ -230,11 +233,11 @@ export default function KanbanBoard(props: KanbanBoardProps) {
         try {
           await runCard({ cardId });
         } catch (e) {
-          console.error(e);
+          logger.error("Failed to run card", e);
         }
       }
     } catch (e) {
-      console.error(e);
+      logger.error("Failed to update card", e);
       loadCards();
     }
   };
@@ -263,7 +266,7 @@ export default function KanbanBoard(props: KanbanBoardProps) {
           await generateTitle(newCard.id);
           loadCards();
         } catch (e) {
-          console.error(e);
+          logger.error("Failed to generate title", e);
         } finally {
           setGeneratingTitles((prev) => {
             const next = new Set(prev);
@@ -273,7 +276,7 @@ export default function KanbanBoard(props: KanbanBoardProps) {
         }
       }
     } catch (e) {
-      console.error(e);
+      logger.error("Failed to create card", e);
       alert("Failed to create card.");
     }
   };
@@ -283,7 +286,7 @@ export default function KanbanBoard(props: KanbanBoardProps) {
       await deleteCard(cardId);
       loadCards();
     } catch (e) {
-      console.error(e);
+      logger.error("Failed to delete card", e);
       alert("Failed to delete card.");
     }
   };
@@ -293,7 +296,7 @@ export default function KanbanBoard(props: KanbanBoardProps) {
       await archiveCard(cardId);
       loadCards();
     } catch (e) {
-      console.error(e);
+      logger.error("Failed to archive card", e);
       alert("Failed to archive card.");
     }
   };
@@ -302,7 +305,7 @@ export default function KanbanBoard(props: KanbanBoardProps) {
     try {
       await cancelRun(cardId);
     } catch (e) {
-      console.error(e);
+      logger.error("Failed to stop card", e);
     }
   };
 
@@ -322,7 +325,7 @@ export default function KanbanBoard(props: KanbanBoardProps) {
     return generatePlan(props.projectId, description)
       .then(() => loadCards())
       .catch((e) => {
-        console.error(e);
+        logger.error("Failed to generate plan", e);
         if (
           !planGenerationCancelledRef.current &&
           !(e instanceof Error && e.name === "AbortError")
@@ -341,7 +344,7 @@ export default function KanbanBoard(props: KanbanBoardProps) {
       setIsGeneratingPlan(false);
       loadCards();
     } catch (e) {
-      console.error(e);
+      logger.error("Failed to stop plan generation", e);
     }
   };
 

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { getLogger } from "@autoboard/logger";
 import KanbanBoard from "~/components/KanbanBoard";
 import TopBar from "~/components/TopBar";
 import CreateProjectModal from "~/components/CreateProjectModal";
@@ -16,6 +17,8 @@ import {
 } from "~/api";
 import type { AutoModeStatus } from "~/api/auto-mode";
 
+const logger = getLogger("Index");
+
 export default function Index() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -29,7 +32,7 @@ export default function Index() {
       const data = await getProjects();
       setProjects(data);
     } catch (e) {
-      console.error(e);
+      logger.error("Failed to load projects", e);
     }
   }, []);
 

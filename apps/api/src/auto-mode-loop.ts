@@ -4,8 +4,11 @@ import {
   projectRepository,
   autoModeSettingsRepository,
 } from "@autoboard/db";
+import { getLogger } from "@autoboard/logger";
 import { StartCardRunUseCase } from "@autoboard/domain";
 import { cardRunStateService } from "@autoboard/services";
+
+const logger = getLogger("AutoModeLoop");
 
 interface LoopState {
   intervalId: ReturnType<typeof setInterval>;
@@ -26,12 +29,10 @@ class AutoModeLoop implements IAutoModeLoop {
         this.startLoop(settings.projectId);
       }
       if (enabledSettings.length > 0) {
-        console.log(
-          `[AutoMode] Restored ${enabledSettings.length} auto mode loop(s) from DB`
-        );
+        logger.info(`Restored ${enabledSettings.length} auto mode loop(s) from DB`);
       }
     } catch (error) {
-      console.error("[AutoMode] Failed to restore loops from DB:", error);
+      logger.error("Failed to restore loops from DB", error);
     }
   }
 
@@ -115,7 +116,7 @@ class AutoModeLoop implements IAutoModeLoop {
           await useCase.execute({ cardId: card.id });
           state.activeCardIds.add(card.id);
         } catch (error) {
-          console.error(`[AutoMode] Failed to start card ${card.id}:`, error);
+          logger.error(`Failed to start card ${card.id}`, error);
           try {
             await cardRepository.updateCard(card.id, {
               columnId: "todo",
@@ -127,7 +128,7 @@ class AutoModeLoop implements IAutoModeLoop {
         }
       }
     } catch (error) {
-      console.error(`[AutoMode] Poll error for project ${projectId}:`, error);
+      logger.error(`Poll error for project ${projectId}`, error);
     } finally {
       state.isProcessing = false;
     }

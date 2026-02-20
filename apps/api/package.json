@@ -13,6 +13,7 @@
   "dependencies": {
     "@autoboard/db": "workspace:*",
     "@autoboard/domain": "workspace:*",
+    "@autoboard/logger": "workspace:*",
     "@autoboard/services": "workspace:*",
     "@autoboard/shared": "workspace:*",
     "@hono/node-server": "^1.13.0",

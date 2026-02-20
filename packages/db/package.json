@@ -21,6 +21,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@autoboard/logger": "workspace:*",
     "better-sqlite3": "^11.7.0",
     "drizzle-orm": "^0.36.4"
   },

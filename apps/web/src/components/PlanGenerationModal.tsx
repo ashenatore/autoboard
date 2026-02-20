@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import { getLogger } from "@autoboard/logger";
+
+const logger = getLogger("PlanGenerationModal");
 
 interface PlanGenerationModalProps {
   isOpen: boolean;
@@ -28,7 +31,7 @@ export default function PlanGenerationModal(props: PlanGenerationModalProps) {
     try {
       await props.onSubmit(desc);
     } catch (e) {
-      console.error(e);
+      logger.error("Failed to generate plan", e);
       alert(e instanceof Error ? e.message : "Failed to generate plan.");
     }
   };

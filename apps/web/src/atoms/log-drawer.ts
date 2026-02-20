@@ -1,6 +1,9 @@
 import { atom, createStore } from "jotai";
+import { getLogger } from "@autoboard/logger";
 import { updateCard } from "~/api/cards";
 import { runCard } from "~/api/run-card";
+
+const logger = getLogger("log-drawer");
 
 export const store = createStore();
 
@@ -40,7 +43,7 @@ export async function sendFollowUp(cardId: string, prompt: string) {
     store.set(drawerKeyAtom, (k) => k + 1);
     refetchCardsRef.current?.();
   } catch (error) {
-    console.error("Error sending follow-up:", error);
+    logger.error("Error sending follow-up", error);
     alert("Failed to send follow-up. Please try again.");
   }
 }

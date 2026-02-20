@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useAtomValue } from "jotai";
+import { getLogger } from "@autoboard/logger";
 import {
   selectedCardIdAtom,
   selectedCardTitleAtom,
@@ -15,6 +16,8 @@ import {
   sendCardInput,
 } from "~/api/card-logs";
 import { cancelRun } from "~/api/run-card";
+
+const logger = getLogger("LogDrawer");
 
 const LOG_TYPE_STYLES: Record<string, { label: string; borderColor: string }> = {
   assistant_text: { label: "Assistant", borderColor: "#4a9eff" },
@@ -75,7 +78,7 @@ export default function LogDrawer() {
         }))
       );
       setTimeout(scrollToBottom, 50);
-    }).catch(console.error);
+    }).catch((e) => logger.error("Failed to get card logs", e));
 
     const es = subscribeToCardLogs(cardId, {
       onLog(event) {
@@ -120,7 +123,7 @@ export default function LogDrawer() {
         await sendCardInput(cardId, inputText.trim());
         setInputText("");
       } catch (e) {
-        console.error(e);
+        logger.error("Failed to send card input", e);
       }
     } else if (isFinished) {
       sendFollowUp(cardId, inputText.trim());
@@ -179,7 +182,7 @@ export default function LogDrawer() {
     try {
       await cancelRun(cardId);
     } catch (e) {
-      console.error(e);
+      logger.error("Failed to cancel run", e);
     }
   };
 
